@@ -1,0 +1,115 @@
+name: Build Windows release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+
+jobs:
+  build-windows:
+    name: Build and prepare signing
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      - name: Run JavaScript tests
+        run: npm test
+
+      - name: Run Rust tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml --locked
+
+      - name: Build NexTune and NSIS installer
+        run: npm run build
+
+      - name: Collect unsigned artifacts
+        id: collect
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+          $output = Join-Path $PWD "artifacts\unsigned"
+          New-Item -ItemType Directory -Force -Path $output | Out-Null
+
+          $appExe = Join-Path $PWD "src-tauri\target\release\nextune.exe"
+          if (-not (Test-Path $appExe)) {
+            throw "NexTune executable was not found: $appExe"
+          }
+
+          $installer = Get-ChildItem `
+            "src-tauri\target\release\bundle\nsis\*-setup.exe" `
+            -File | Select-Object -First 1
+
+          if (-not $installer) {
+            throw "NSIS installer was not found."
+          }
+
+          Copy-Item $appExe (Join-Path $output "NexTune.exe")
+          Copy-Item $installer.FullName `
+            (Join-Path $output "NexTune_${version}_x64-setup.exe")
+
+          Write-Host "Prepared:"
+          Get-ChildItem $output | Format-Table Name, Length
+
+      - name: Upload unsigned artifact
+        id: upload-unsigned-artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: nextune-windows-unsigned
+          path: artifacts/unsigned/*
+          if-no-files-found: error
+          retention-days: 14
+
+      # This step is skipped until the SignPath project has been approved and
+      # the repository secret/variables listed below have been configured.
+      - name: Submit artifact to SignPath
+        if: >-
+          ${{ env.SIGNPATH_API_TOKEN != '' &&
+              vars.SIGNPATH_ORGANIZATION_ID != '' &&
+              vars.SIGNPATH_PROJECT_SLUG != '' &&
+              vars.SIGNPATH_SIGNING_POLICY_SLUG != '' }}
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.upload-unsigned-artifact.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: artifacts/signed
+
+      - name: Upload signed artifact
+        if: >-
+          ${{ env.SIGNPATH_API_TOKEN != '' &&
+              vars.SIGNPATH_ORGANIZATION_ID != '' &&
+              vars.SIGNPATH_PROJECT_SLUG != '' &&
+              vars.SIGNPATH_SIGNING_POLICY_SLUG != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: nextune-windows-signed
+          path: artifacts/signed/*
+          if-no-files-found: error
+          retention-days: 30
