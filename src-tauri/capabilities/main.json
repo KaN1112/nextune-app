@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "Local main window only; OS operations use validated Rust commands.",
+  "windows": ["main"],
+  "permissions": []
+}

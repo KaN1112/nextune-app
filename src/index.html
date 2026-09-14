@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <title>NexTune · ゲーミングPCユーティリティ</title>
+    <link rel="stylesheet" href="css/variables.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/layout.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/pages.css" />
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="#dashboard"
+        ><span class="brand-mark">N</span
+        ><span>NexTune<small>ゲーミングPCユーティリティ</small></span></a
+      >
+      <div class="nav-label">メニュー</div>
+      <nav aria-label="メインメニュー" id="navigation"></nav>
+      <div class="sidebar-bottom">
+        <div class="privacy">
+          <span class="status-dot"></span>データはPC内に保存
+        </div>
+        <small>NexTune v1.0.0</small><small id="privilege">権限を確認中…</small>
+      </div>
+    </aside>
+    <div class="workspace">
+      <header class="topbar">
+        <span>整える。確認する。ゲームを楽しむ。</span
+        ><span id="connection-badge" class="badge">接続中…</span>
+      </header>
+      <main id="main" tabindex="-1"></main>
+      <footer>
+        <span>安全 <i>·</i> 変更内容を明示 <i>·</i> 復元可能な設定</span
+        ><span id="sample-status">システム情報を取得中</span>
+        <div class="credits" lang="en">
+          <span>Created by KaN.</span>
+          <span>inspired by VyLite.</span>
+        </div>
+      </footer>
+    </div>
+    <div id="toasts" aria-live="polite" aria-atomic="false"></div>
+    <dialog id="confirmation"><div id="dialog-content"></div></dialog>
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>

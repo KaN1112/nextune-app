@@ -1,0 +1,253 @@
+.score-body {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+.score-ring {
+  width: 125px;
+  height: 125px;
+  position: relative;
+  flex-shrink: 0;
+}
+.score-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.score-ring circle {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 6;
+}
+.score-ring .fill {
+  stroke: var(--accent);
+  stroke-linecap: round;
+  stroke-dasharray: 327;
+  stroke-dashoffset: 327;
+}
+.score-number {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.score-number small {
+  font-size: 10px;
+  font-weight: 400;
+}
+.score-caption {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 13px;
+}
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 22px;
+  padding-top: 14px;
+}
+.metric-label {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
+}
+.metric-value {
+  font-size: 26px;
+  font-weight: 550;
+  white-space: nowrap;
+  letter-spacing: -0.8px;
+}
+.metric-value small {
+  font-size: 11px;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+.metric-detail {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 5px;
+}
+.boost-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-left: 3px solid var(--accent);
+  padding: 24px;
+}
+.boost-banner .boost-copy {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.boost-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.boost-icon svg {
+  width: 22px;
+  height: 22px;
+}
+.boost-banner p {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.boost-banner small {
+  display: block;
+  margin-top: 6px;
+  color: var(--accent);
+}
+.hardware-icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  background: var(--hover);
+  color: var(--muted);
+  border-radius: 6px;
+}
+.hardware-icon svg {
+  width: 17px;
+  height: 17px;
+}
+.network-summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.network-summary h3 {
+  font-size: 13px;
+}
+.workflow {
+  display: flex;
+  gap: 24px;
+  color: var(--muted);
+  font-size: 11px;
+  margin: 0 0 22px;
+}
+.workflow span:first-child {
+  color: var(--accent);
+}
+.performance-metrics {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 15px;
+}
+.performance-metrics > div {
+  padding-right: 12px;
+  border-right: 1px solid var(--line);
+}
+.performance-metrics > div:last-child {
+  border: 0;
+}
+.performance-metrics .metric-value {
+  font-size: 23px;
+}
+.network-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px;
+}
+.network-metrics .metric-value {
+  font-size: 25px;
+}
+.history-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 15px;
+  color: var(--text);
+  margin-bottom: 9px;
+}
+.history-item:hover,
+.history-item.selected {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.history-item small {
+  display: block;
+  margin-top: 5px;
+}
+.settings-panel {
+  max-width: 850px;
+}
+.settings-panel h2 {
+  margin-bottom: 6px;
+}
+.settings-panel .row {
+  padding: 18px 0;
+}
+.settings-panel select {
+  min-width: 160px;
+}
+.welcome-mark {
+  font-size: 32px;
+  width: 52px;
+  height: 58px;
+  margin-bottom: 22px;
+}
+.score-breakdown {
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--muted);
+}
+details summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 11px;
+}
+details .row {
+  padding: 5px 0;
+}
+.result-list {
+  font-size: 13px;
+  line-height: 1.8;
+  padding-left: 20px;
+}
+.preview-label {
+  color: var(--orange);
+}
+@media (max-width: 1100px) {
+  .score-body {
+    gap: 15px;
+  }
+  .score-ring {
+    width: 100px;
+    height: 100px;
+  }
+  .metric-value {
+    font-size: 22px;
+  }
+  .performance-metrics {
+    grid-template-columns: repeat(3, 1fr);
+    row-gap: 22px;
+  }
+  .boost-banner {
+    gap: 15px;
+  }
+  .boost-banner .boost-copy {
+    gap: 14px;
+  }
+  .definition {
+    grid-template-columns: 110px minmax(0, 1fr);
+  }
+  .network-metrics {
+    gap: 12px;
+  }
+}

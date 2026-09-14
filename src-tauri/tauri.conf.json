@@ -1,0 +1,38 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "NexTune",
+  "version": "1.0.0",
+  "identifier": "app.nextune.utility",
+  "build": {
+    "frontendDist": "../src"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "NexTune · ゲーミングPCユーティリティ",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 960,
+        "minHeight": 640,
+        "backgroundColor": "#0E1014"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src ipc: http://ipc.localhost; object-src 'none'; frame-src 'none'; base-uri 'none'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "shortDescription": "ゲーム前のPC状態確認と安全な最適化",
+    "category": "Utility",
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["Japanese"]
+      }
+    }
+  }
+}
