@@ -130,5 +130,13 @@ Windows の EmptyWorkingSet を使用します。表示する減少量は対象�
 
 参考：[EmptyWorkingSet](https://learn.microsoft.com/en-us/windows/win32/api/psapi/nf-psapi-emptyworkingset)、[Working Set](https://learn.microsoft.com/en-us/windows/win32/memory/working-set)。
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
+
+Official NexTune Windows release artifacts are built from this public repository through GitHub Actions and are submitted to SignPath according to the project's [Code signing policy](CODE_SIGNING_POLICY.md).
+
+NexTune does not transfer information to other networked systems unless the user explicitly starts a network diagnostic or otherwise requests the network operation.
+
 Created by KaN.  
 inspired by VyLite.
