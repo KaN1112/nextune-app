@@ -26,24 +26,40 @@ pub fn set_plan(id: &str) -> AppResult<()> {
     }
     Ok(())
 }
+fn interpret_game_mode(auto: Option<u32>, allowed: Option<u32>) -> bool {
+    // Current Windows versions show Game Mode as on by default even before
+    // either per-user override value has been written.
+    auto.or(allowed).map_or(true, |value| value != 0)
+}
+
 pub fn game_mode() -> Option<bool> {
     #[cfg(windows)]
     {
         use winreg::{enums::*, RegKey};
         let key = RegKey::predef(HKEY_CURRENT_USER)
-            .open_subkey("Software\\Microsoft\\GameBar")
-            .ok()?;
-        return key
-            .get_value::<u32, _>("AutoGameModeEnabled")
-            .ok()
-            .and_then(|v| match v {
-                0 => Some(false),
-                1 => Some(true),
-                _ => None,
-            });
+            .open_subkey("Software\\Microsoft\\GameBar");
+        let (auto, allowed) = match key {
+            Ok(key) => (
+                key.get_value::<u32, _>("AutoGameModeEnabled").ok(),
+                key.get_value::<u32, _>("AllowAutoGameMode").ok(),
+            ),
+            Err(_) => (None, None),
+        };
+        return Some(interpret_game_mode(auto, allowed));
     }
     #[cfg(not(windows))]
     None
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn game_mode_uses_override_then_legacy_then_windows_default() {
+        assert!(super::interpret_game_mode(Some(1), Some(0)));
+        assert!(!super::interpret_game_mode(Some(0), Some(1)));
+        assert!(!super::interpret_game_mode(None, Some(0)));
+        assert!(super::interpret_game_mode(None, None));
+    }
 }
 pub fn scan(settings: &Settings) -> AppResult<OptimizationScan> {
     let mut cmd = platform::command("powercfg.exe");

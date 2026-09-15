@@ -23,6 +23,19 @@ async function start() {
     toast(e.message, true);
   }
   initRouter();
+  let focusRefreshPending = false;
+  window.addEventListener("focus", async () => {
+    if (!isDesktop || focusRefreshPending) return;
+    focusRefreshPending = true;
+    try {
+      state.optimization = await invoke("scan_optimization");
+      window.dispatchEvent(new Event("nextune:sample"));
+    } catch (error) {
+      if (error?.code !== "busy") toast(error.message, true);
+    } finally {
+      focusRefreshPending = false;
+    }
+  });
   matchMedia("(prefers-color-scheme:light)").addEventListener("change", () => {
     if (state.settings.theme === "system") applyTheme("system");
   });
