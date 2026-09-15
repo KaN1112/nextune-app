@@ -50,7 +50,7 @@ async function start() {
   if (!state.settings.welcomeComplete && !state.errors.settings) {
     const accepted = await confirm(
       "NexTuneへようこそ",
-      '<div class="brand-mark welcome-mark">N</div><p>NexTuneは、ゲームに向けたPCの状態確認と準備をお手伝いします。</p><p>許可なくWindowsの重要な設定を変更することはありません。</p><p>データはこのPC内に保持します。ネットワークテストは開始したときだけ実行します。</p>',
+      '<div class="brand-mark welcome-mark"><img src="assets/app-icon.png" alt="NexTuneアイコン"></div><p>NexTuneは、ゲームに向けたPCの状態確認と準備をお手伝いします。</p><p>許可なくWindowsの重要な設定を変更することはありません。</p><p>データはこのPC内に保持します。ネットワークテストは開始したときだけ実行します。</p>',
       "はじめる",
     );
     if (accepted) {

@@ -36,6 +36,13 @@
   font-size: 25px;
   font-style: italic;
 }
+.brand-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
 .nav-label {
   color: var(--muted);
   font-size: 10px;
