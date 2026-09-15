@@ -25,10 +25,18 @@ export function render() {
       '<div id="optimization-summary">PCの設定を変更せずに、推奨項目を確認します。</div>',
       '<span class="badge">自動では変更しません</span>',
     ) +
-    `<div class="section-space">${panel("最適化の項目", '<div id="optimization-items"></div>')}</div><div class="grid two section-space">${panel("検出したアプリ", '<div id="detected-apps"></div>')}${panel("安全性について", '<div class="notice">電源プランは変更前の値を保存し、あとで復元できます。アプリには通常の終了を要求するだけです。先に作業内容を保存してください。終了したアプリや削除したファイルは復元できません。</div><p class="muted section-space">セキュリティ機能、Windowsサービス、ドライバー、アンチチートは変更しません。</p>')}</div><div class="actions section-space"><button class="button primary" id="apply-boost" disabled>選択した最適化を実行</button><a class="button" href="#restore">復元履歴を見る</a></div><div id="boost-result" class="section-space" aria-live="polite"></div>`
+    `<div class="section-space">${panel("最適化の項目", '<div id="optimization-items"></div>')}</div><div class="grid two section-space">${panel("検出したアプリ", '<div id="detected-apps"></div>')}${panel("安全性について", '<div class="notice">電源プランは変更前の値を保存し、あとで復元できます。アプリには通常の終了を要求するだけです。先に作業内容を保存してください。終了したアプリや削除したファイルは復元できません。</div><p class="muted section-space">セキュリティ機能、Windowsサービス、ドライバー、アンチチートは変更しません。</p>')}</div><div class="actions section-space"><button class="button primary" id="apply-boost" disabled>選択した最適化を実行</button><a class="button" href="#restore">復元履歴を見る</a></div><div class="actions section-space"><button class="button" id="open-power-settings">Windowsの電源設定を開く</button></div><div id="boost-result" class="section-space" aria-live="polite"></div>`
   );
 }
 export function mount(root, isCurrent) {
+  root.onclick = (e) => {
+    if (e.target.id === "open-power-settings")
+      action(e.target, () =>
+        invoke("open_windows_settings", { page: "power" }),
+      );
+    if (e.target.id === "open-game-settings")
+      action(e.target, () => invoke("open_windows_settings", { page: "game" }));
+  };
   root.querySelector("#scan-boost").onclick = () =>
     action(root.querySelector("#scan-boost"), async () => {
       state.optimization = await invoke("scan_optimization");
@@ -79,8 +87,8 @@ function show(root) {
   const scan = state.optimization;
   root.querySelector("#optimization-items").innerHTML = scan
     ? `
-<label class="row check-row"><input id="select-power" type="checkbox" ${scan.powerPlan === BALANCED && scan.highPerformanceAvailable && state.settings.changePowerPlan ? "" : "disabled"}><span class="copy"><strong>電源プラン</strong><small>${scan.powerPlan === BALANCED ? "バランス" : escape(scan.powerPlan || "取得できません")} → ${scan.highPerformanceAvailable ? "高パフォーマンスを利用可能" : "高パフォーマンスは利用不可"}${state.settings.changePowerPlan ? "" : " · 設定で無効になっています"}</small></span><span class="badge">復元可能</span></label>
-<div class="row"><div><strong>ゲームモード</strong><p>${scan.gameMode == null ? "取得できません" : scan.gameMode ? "オン・変更不要" : "オフ"} · ${state.settings.enableGameMode ? "自動変更には対応していません" : "設定で案内を無効にしています"}</p></div><span class="badge">手動</span></div>
+<label class="row check-row"><input id="select-power" type="checkbox" ${scan.powerPlan === BALANCED && scan.highPerformanceAvailable && state.settings.changePowerPlan ? "" : "disabled"}><span class="copy"><strong>電源プラン</strong><small>${scan.powerPlan === BALANCED ? "バランス" : escape(scan.powerPlan || "取得できません")} → ${scan.highPerformanceAvailable ? "高パフォーマンスを利用可能" : "このPCはWindowsの電源設定から変更してください"}${state.settings.changePowerPlan ? "" : " · 設定で無効になっています"}</small></span><span class="badge">復元可能</span></label>
+<div class="row"><div><strong>ゲームモード</strong><p>${scan.gameMode == null ? "取得できません" : scan.gameMode ? "オン・変更不要" : "オフ"} · ${state.settings.enableGameMode ? "Windows設定から切り替えられます" : "設定で案内を無効にしています"}</p></div><button class="button" id="open-game-settings">Windows設定を開く</button></div>
 <p class="notice">ゲームモードは、Windowsの「設定」→「ゲーム」→「ゲームモード」から変更してください。NexTuneはユーザーごとの明示的な設定値を読み取り、値がなければ不明と表示します。実際の動作はWindowsのバージョンやポリシーにも左右されます。</p>
 <div class="row"><div><strong>一時ファイル</strong><p>${state.settings.cleanTemporaryFiles ? "確認対象として有効" : "任意"} · クリーナーでスキャンし、対象カテゴリを確認してください。</p></div><a class="button" href="#cleaner">クリーナーを開く →</a></div>`
     : empty(

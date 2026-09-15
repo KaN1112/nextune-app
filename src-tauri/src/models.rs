@@ -41,6 +41,9 @@ impl From<serde_json::Error> for AppError {
 #[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct Settings {
     pub welcome_complete: bool,
+    pub auto_start: bool,
+    pub start_minimized: bool,
+    pub minimize_to_tray: bool,
     pub theme: String,
     pub close_background_apps: bool,
     pub clean_temporary_files: bool,
@@ -52,6 +55,9 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             welcome_complete: false,
+            auto_start: false,
+            start_minimized: false,
+            minimize_to_tray: false,
             theme: "dark".into(),
             close_background_apps: false,
             clean_temporary_files: false,

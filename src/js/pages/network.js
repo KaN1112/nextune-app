@@ -25,7 +25,7 @@ export function render() {
         ["minimum", "最小Ping"],
         ["maximum", "最大Ping"],
         ["jitter", "ジッター"],
-        ["packetLoss", "パケット損失率"],
+        ["packetLoss", "パケットロス"],
       ]
         .map(
           ([id, name]) =>

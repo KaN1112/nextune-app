@@ -23,10 +23,14 @@ export function render() {
       '<div id="cleanup-summary">既知の一時フォルダーをスキャンして、削除可能なファイルを確認します。</div>',
       '<span class="badge">スキャンだけでは削除しません</span>',
     ) +
-    `<div class="section-space">${panel("スキャンしたカテゴリ", '<div id="categories"></div><div class="actions section-space"><button class="button primary" id="clean-files" disabled>選択したファイルを削除</button><span class="muted" id="selected-size"></span></div>')}</div><div class="notice warning section-space">削除したファイルは復元できません。表示したフォルダー直下にある、24時間以上前のファイルのうち、スキャン後に変更されていないものだけが対象です。サブフォルダー、リンク、個人フォルダー、ゲームのセーブ、ブラウザーのデータ、ダウンロードは対象外です。シェーダーキャッシュは再生成時に一時的なカクつきが起きる場合があります。</div><div class="section-space">${panel("削除結果の詳細", '<div id="cleanup-result">ファイルはまだ削除していません。</div>')}</div>`
+    `<div class="section-space">${panel("スキャンしたカテゴリ", '<div id="categories"></div><div class="actions section-space"><button class="button primary" id="clean-files" disabled>選択したファイルを削除</button><span class="muted" id="selected-size"></span></div>')}</div><div class="notice warning section-space">削除したファイルは復元できません。表示したフォルダー直下にある、24時間以上前のファイルのうち、スキャン後に変更されていないものだけが対象です。サブフォルダー、リンク、個人フォルダー、ゲームのセーブ、ブラウザーのデータ、ダウンロードは対象外です。シェーダーキャッシュは再生成時に一時的なカクつきが起きる場合があります。</div><div class="notice section-space"><p>配信の最適化キャッシュなど、Windows管理の領域はストレージ設定で整理できます。</p><button class="button" id="open-storage">Windowsのストレージ設定を開く</button></div><div class="section-space">${panel("削除結果の詳細", '<div id="cleanup-result">ファイルはまだ削除していません。</div>')}</div>`
   );
 }
 export function mount(root, isCurrent) {
+  root.querySelector("#open-storage").onclick = () =>
+    action(root.querySelector("#open-storage"), () =>
+      invoke("open_windows_settings", { page: "storage" }),
+    );
   root.querySelector("#scan-cleaner").onclick = () =>
     action(root.querySelector("#scan-cleaner"), async () => {
       state.cleaner = await invoke("scan_cleaner");

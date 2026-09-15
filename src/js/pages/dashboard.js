@@ -17,10 +17,11 @@ export function render() {
       "ゲーム前に、PCの状態をひと目で確認。",
       '<span class="badge">システムの概要</span>',
     ) +
-    memoryCard() + `
+    memoryCard() +
+    `
 <div class="grid dashboard-top">
 ${panel("ゲーム準備スコア", `<div class="score-body"><div class="score-ring"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52"/><circle class="fill" id="score-arc" cx="60" cy="60" r="52"/></svg><div class="score-number"><span id="score-value">—</span><small>/ 100</small></div></div><div><span id="score-label" class="badge">未確定</span><p class="score-caption">ゲームの準備状態<br>FPS性能の評価ではありません</p></div></div><details class="score-breakdown"><summary id="score-coverage">評価の内訳を見る</summary><div id="score-details"></div></details>`)}
-${panel("システムの状態", `<div class="status-grid"><div><div class="metric-label">CPU</div><div class="metric-value" id="cpu-value">—</div><div class="metric-detail">CPU使用率</div><div class="meter"><span id="cpu-meter"></span></div></div><div><div class="metric-label">GPU</div><div class="metric-value">—</div><div class="metric-detail">取得できません</div><div class="meter"></div></div><div><div class="metric-label">RAM</div><div class="metric-value" id="ram-value">—</div><div class="metric-detail" id="ram-detail">データを取得中</div><div class="meter"><span id="ram-meter"></span></div></div><div><div class="metric-label">PING</div><div class="metric-value" id="ping-value">—</div><div class="metric-detail">前回の手動テスト</div><div class="meter"></div></div></div>`, `<span class="badge good"><span class="status-dot"></span>1秒ごとに更新</span>`)}
+${panel("システムの状態", `<div class="status-grid"><div><div class="metric-label">CPU</div><div class="metric-value" id="cpu-value">—</div><div class="metric-detail">CPU使用率</div><div class="meter"><span id="cpu-meter"></span></div></div><div><div class="metric-label">GPU</div><div class="metric-value" id="gpu-value">—</div><div class="metric-detail" id="gpu-detail">センサーを確認中</div><div class="meter"></div></div><div><div class="metric-label">RAM</div><div class="metric-value" id="ram-value">—</div><div class="metric-detail" id="ram-detail">データを取得中</div><div class="meter"><span id="ram-meter"></span></div></div><div><div class="metric-label">PING</div><div class="metric-value" id="ping-value">—</div><div class="metric-detail">前回の手動テスト</div><div class="meter"></div></div></div>`, `<span class="badge good"><span class="status-dot"></span>1秒ごとに更新</span>`)}
 <section class="panel boost-banner span-all"><div class="boost-copy"><span class="boost-icon">${icon("game-boost")}</span><div><h2>次のゲームに向けて、PCを準備。</h2><p>推奨項目を確認し、変更する内容を自分で選べます。</p><small id="boost-summary">スキャンして推奨項目を確認しましょう</small></div></div><a class="button primary" href="#game-boost">ゲームブーストを開く ${icon("arrow")}</a></section>
 </div><div class="grid two section-space">${panel("PC情報", '<div id="pc-info"></div>', `<span class="hardware-icon">${icon("cpu")}</span>`)}${panel("ネットワークの状態", '<div id="network-info"></div>', `<a href="#network">接続を診断 →</a>`)}</div>
 <div class="section-space">${panel("パフォーマンスの推移", '<canvas class="chart" id="preview-chart" aria-label="過去60秒のCPU・メモリ使用率" role="img"></canvas><div class="chart-axis"><span>60秒前</span><span>現在</span></div>', '<div class="chart-legend"><span>CPU</span><span class="ram">RAM</span></div>')}</div>`
@@ -34,6 +35,14 @@ export function update() {
   const root = document.querySelector("#main");
   if (!root.querySelector("#cpu-value")) return;
   const s = state.snapshot;
+  root.querySelector("#gpu-value").textContent = number(
+    state.sensors?.gpu,
+    "%",
+  );
+  root.querySelector("#gpu-detail").textContent =
+    state.sensors?.gpu == null
+      ? "対応カウンター待ち・詳細はパフォーマンスへ"
+      : "最も使用率が高いGPUエンジン";
   const score = currentScore();
   root.querySelector("#cpu-value").textContent = number(s?.cpu, "%");
   root.querySelector("#ram-value").textContent = s?.ramTotal
@@ -77,7 +86,7 @@ export function update() {
     definition([
       ["IPv4", n?.ipv4?.join(", ")],
       ["DNS", n?.dns?.join(", ")],
-      ["パケット損失率", number(state.ping?.packetLoss, "%")],
+      ["パケットロス", number(state.ping?.packetLoss, "%")],
       [
         "前回の測定",
         state.ping

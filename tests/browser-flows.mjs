@@ -29,9 +29,31 @@ await page.addInitScript(() => {
       invoke: async (command, args) => {
         window.calls.push({ command, args });
         switch (command) {
-          case "tidy_memory": if(window.deferMemory) await new Promise(r => window.releaseMemory = r); return {processed:1, skipped:0, reduced:10485760};
-          case "list_applications": return [{pid:4321,name:"Example.exe",startTicks:"987",memory:10485760}];
-          case "close_application": return {requested:true};
+          case "quick_cleanup":
+            if (window.deferMemory)
+              await new Promise((r) => (window.releaseMemory = r));
+            return { deleted: 1, skipped: 0, failed: 0, bytes: 10485760 };
+          case "list_applications":
+            return [
+              {
+                pid: 4321,
+                name: "Example.exe",
+                startTicks: "987",
+                memory: 10485760,
+              },
+            ];
+          case "close_application":
+            return { requested: true };
+          case "get_hardware_sensors":
+            return {
+              gpu: 42,
+              vram: 1073741824,
+              measuredAt: new Date().toISOString(),
+            };
+          case "check_updates":
+            return { status: "available", latest: "v1.2.0", current: "1.1.0" };
+          case "open_windows_settings":
+            return null;
           case "load_settings":
             return window.saved;
           case "save_settings":
@@ -216,7 +238,23 @@ assert.deepEqual(await page.evaluate(() => saved.exclusions), [
   "Discord.exe",
   "Spotify.exe",
 ]);
-console.log("PASS settings save and appearance");
+for (const id of ["autoStart", "startMinimized", "minimizeToTray"]) {
+  assert.equal(await page.locator(`#${id}`).isEnabled(), true);
+  await page.locator(`#${id}`).check();
+}
+await page.locator("#save-settings").click();
+await page.waitForFunction(
+  () => saved.autoStart && saved.startMinimized && saved.minimizeToTray,
+);
+await page.locator("#check-updates").click();
+await page.getByText(/新しいバージョン v1.2.0/).waitFor();
+await page.locator("#open-release").click();
+await page.waitForFunction(() =>
+  calls.some(
+    (c) => c.command === "open_windows_settings" && c.args.page === "release",
+  ),
+);
+console.log("PASS startup/tray settings and update check");
 await page.locator('nav a[href="#network"]').click();
 await page.locator("#run-ping").click();
 await page.getByText("25%", { exact: true }).waitFor();
@@ -236,29 +274,74 @@ await page.screenshot({
   fullPage: true,
 });
 await page.locator("#tidy-memory").click();
-await page.getByText(/1件を整理・ワーキングセット減少量 10.0 MB/).waitFor();
-assert.equal(await page.evaluate(() => calls.filter(c => c.command === "tidy_memory").length), 1);
+await page.getByText(/削除 1件 · 10.0 MB/).waitFor();
+assert.equal(
+  await page.evaluate(
+    () => calls.filter((c) => c.command === "quick_cleanup").length,
+  ),
+  1,
+);
 await page.locator('nav a[href="#applications"]').click();
-await page.getByText("Example.exe", {exact:true}).waitFor();
+await page.getByText("Example.exe", { exact: true }).waitFor();
 await page.locator("#app-search").fill("missing");
 assert.equal(await page.locator("#apps-list button").count(), 0);
 await page.locator("#app-search").fill("Example");
 await page.locator("#apps-list button").click();
 await page.locator("#cancel-dialog").click();
-assert.equal(await page.evaluate(() => calls.filter(c => c.command === "close_application").length), 0);
+assert.equal(
+  await page.evaluate(
+    () => calls.filter((c) => c.command === "close_application").length,
+  ),
+  0,
+);
 await page.locator("#apps-list button").click();
 await page.locator("#accept-dialog").click();
-await page.waitForFunction(() => calls.some(c => c.command === "close_application"));
-assert.deepEqual(await page.evaluate(() => calls.find(c => c.command === "close_application").args), {selection:{pid:4321,startTicks:"987"}});
+await page.waitForFunction(() =>
+  calls.some((c) => c.command === "close_application"),
+);
+assert.deepEqual(
+  await page.evaluate(
+    () => calls.find((c) => c.command === "close_application").args,
+  ),
+  { selection: { pid: 4321, startTicks: "987" } },
+);
 await page.locator('nav a[href="#dashboard"]').click();
-await page.evaluate(() => window.deferMemory = true);
+await page.evaluate(() => (window.deferMemory = true));
 await page.locator("#tidy-memory").click();
 await page.waitForFunction(() => !!window.releaseMemory);
 await page.locator('nav a[href="#performance"]').click();
 await page.locator('nav a[href="#dashboard"]').click();
 assert.equal(await page.locator("#tidy-memory").isDisabled(), true);
 await page.evaluate(() => window.releaseMemory());
-await page.waitForFunction(() => !document.querySelector("#tidy-memory").disabled);
-console.log("PASS one-click memory, pending navigation, app search, cancel, and exact process identity");
+await page.waitForFunction(
+  () => !document.querySelector("#tidy-memory").disabled,
+);
+console.log(
+  "PASS one-click memory, pending navigation, app search, cancel, and exact process identity",
+);
+await page.locator('nav a[href="#performance"]').click();
+await page.waitForFunction(
+  () => document.querySelector("#metric-GPU").textContent === "42%",
+);
+assert.equal(await page.locator("#metric-VRAM").textContent(), "1.0 GB");
+await page.locator('nav a[href="#cleaner"]').click();
+await page.locator("#open-storage").click();
+await page.locator('nav a[href="#game-boost"]').click();
+await page.locator("#scan-boost").click();
+await page.locator("#open-game-settings").click();
+await page.locator("#open-power-settings").click();
+const opened = await page.evaluate(() =>
+  calls
+    .filter((c) => c.command === "open_windows_settings")
+    .map((c) => c.args.page),
+);
+assert.ok(["storage", "game", "power"].every((p) => opened.includes(p)));
+assert.equal(
+  (await page.locator(".brand small").count())
+    ? await page.locator(".brand small").textContent()
+    : "Gaming PC Utility",
+  "Gaming PC Utility",
+);
+console.log("PASS GPU/VRAM and Windows settings routes");
 assert.deepEqual(errors, []);
 await browser.close();

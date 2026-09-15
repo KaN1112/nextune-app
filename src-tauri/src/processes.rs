@@ -58,30 +58,3 @@ pub fn applications(exclusions: &[String]) -> AppResult<Vec<ProcessCandidate>> {
     Ok(result)
 }
 
-/// Only minimized, explicitly supported desktop apps; never scan/trim all processes.
-pub fn tidy_memory(exclusions: &[String]) -> AppResult<Value> {
-    platform::powershell(
-        r#"
-$ErrorActionPreference='Stop'
-Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class NexTuneMemory { [DllImport("psapi.dll")] public static extern bool EmptyWorkingSet(IntPtr h); [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h); }'
-$excluded=@(ConvertFrom-Json -InputObject $env:NEXTUNE_EXCLUSIONS)
-$session=(Get-Process -Id $PID).SessionId
-$done=0; $skipped=0; [long]$reduced=0
-Get-Process | Where-Object {$_.SessionId -eq $session -and $_.ProcessName -in @('chrome','msedge','firefox','Spotify','Teams','ms-teams','Creative Cloud') -and $_.MainWindowHandle -ne 0} | ForEach-Object {
- $p=$_
- try {
-  if(($p.ProcessName+'.exe') -in $excluded){return}
-  $handle=$p.Handle
-  if(-not [NexTuneMemory]::IsIconic($p.MainWindowHandle)){return}
-  $p.Refresh(); [long]$before=$p.WorkingSet64
-  if([NexTuneMemory]::EmptyWorkingSet($handle)){$p.Refresh(); $reduced += [Math]::Max([long]0,($before-$p.WorkingSet64)); $done++}else{$skipped++}
- } catch {$skipped++} finally {$p.Dispose()}
-}
-@{processed=$done;skipped=$skipped;reduced=$reduced} | ConvertTo-Json -Compress
-"#,
-        &[(
-            "NEXTUNE_EXCLUSIONS",
-            serde_json::to_string(exclusions).unwrap_or_else(|_| "[]".into()),
-        )],
-    )
-}

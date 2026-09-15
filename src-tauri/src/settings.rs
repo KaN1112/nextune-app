@@ -101,6 +101,11 @@ mod tests {
         fs::remove_dir(root).unwrap();
     }
     #[test]
+    fn older_settings_default_startup_features_to_off() {
+        let old: Settings = serde_json::from_str(r#"{"theme":"dark","exclusions":[]}"#).unwrap();
+        assert!(!old.auto_start && !old.start_minimized && !old.minimize_to_tray);
+    }
+    #[test]
     fn rejects_paths_in_process_exclusions() {
         let mut s = Settings::default();
         s.exclusions.push("C:\\Windows\\System32\\test.exe".into());

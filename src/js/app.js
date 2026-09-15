@@ -46,6 +46,7 @@ async function start() {
     window.dispatchEvent(new Event("nextune:sample"));
   });
   sample();
+  sampleSensors();
   if (!state.settings.welcomeComplete && !state.errors.settings) {
     const accepted = await confirm(
       "NexTuneへようこそ",
@@ -93,3 +94,15 @@ async function sample() {
 start().catch((e) => {
   document.querySelector("#main").innerHTML = errorHTML(e);
 });
+
+async function sampleSensors() {
+  if (!document.hidden) {
+    try {
+      state.sensors = await invoke("get_hardware_sensors");
+    } catch (e) {
+      state.sensors = { error: e.message };
+    }
+    window.dispatchEvent(new Event("nextune:sample"));
+  }
+  setTimeout(sampleSensors, 5000);
+}

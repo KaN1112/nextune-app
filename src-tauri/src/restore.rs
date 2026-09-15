@@ -23,7 +23,7 @@ pub fn prepare(root: &Path, before: String) -> AppResult<RestoreSession> {
     let session = RestoreSession {
         id: uuid::Uuid::new_v4().to_string(),
         created_at: chrono::Utc::now().to_rfc3339(),
-        version: "1.0.0".into(),
+        version: env!("CARGO_PKG_VERSION").into(),
         changes: vec![Change {
             kind: "powerPlan".into(),
             before,

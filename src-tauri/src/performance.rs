@@ -22,8 +22,6 @@ pub struct Snapshot {
     pub vram: Option<u64>,
     pub disk: Option<u64>,
     pub network: Option<u64>,
-    pub cpu_temperature: Option<f32>,
-    pub gpu_temperature: Option<f32>,
 }
 impl Monitor {
     pub fn new() -> Self {
@@ -72,8 +70,6 @@ impl Monitor {
             vram: None,
             disk: self.disk_rate,
             network: self.network_rate,
-            cpu_temperature: None,
-            gpu_temperature: None,
         }
     }
 }

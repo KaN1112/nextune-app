@@ -217,7 +217,14 @@ pub fn load_settings(state: State<AppState>) -> AppResult<Settings> {
 #[tauri::command]
 pub fn save_settings(state: State<AppState>, settings: Settings) -> AppResult<()> {
     let _guard = state.operations.try_lock().map_err(|_| busy())?;
-    crate::settings::save(&state.root, &settings)
+    crate::settings::validate(&settings)?;
+    let old = crate::settings::load(&state.root)?;
+    if old.auto_start != settings.auto_start { crate::desktop::set_autostart(settings.auto_start)?; }
+    if let Err(error) = crate::settings::save(&state.root, &settings) {
+        if old.auto_start != settings.auto_start { let _ = crate::desktop::set_autostart(old.auto_start); }
+        return Err(error);
+    }
+    Ok(())
 }
 async fn blocking<T: Send + 'static>(
     f: impl FnOnce() -> AppResult<T> + Send + 'static,
@@ -252,17 +259,33 @@ pub async fn close_application(
     Ok(result)
 }
 #[tauri::command]
-pub async fn tidy_memory(state: State<'_, AppState>) -> AppResult<serde_json::Value> {
+pub async fn quick_cleanup(state: State<'_, AppState>) -> AppResult<cleaner::CleanupResult> {
     let _guard = state.operations.try_lock().map_err(|_| busy())?;
     let mut last = state.memory_last.lock().map_err(|_| busy())?;
     if last.is_some_and(|t| t.elapsed() < Duration::from_secs(60)) {
-        return Err(AppError::new(
-            "cooldown",
-            "連続実行を避けるため、前回の実行から60秒お待ちください。",
-        ));
+        return Err(AppError::new("cooldown", "前回の整理から60秒お待ちください。"));
     }
-    let result = processes::tidy_memory(&settings::load(&state.root)?.exclusions)?;
+    let result = cleaner::quick_cleanup()?;
     *last = Some(Instant::now());
-    settings::log(&state.root, "memory_tidy_completed");
+    settings::log(&state.root, "quick_cleanup_completed");
     Ok(result)
+}
+#[tauri::command]
+pub async fn get_hardware_sensors() -> AppResult<serde_json::Value> {
+    blocking(crate::hardware::read).await
+}
+#[tauri::command]
+pub async fn open_windows_settings(page: String) -> AppResult<()> {
+    let uri = match page.as_str() {
+        "game" => "ms-settings:gaming-gamemode",
+        "storage" => "ms-settings:storagesense",
+        "power" => "ms-settings:powersleep",
+        "release" => "https://github.com/KaN1112/nextune-app/releases",
+        _ => return Err(AppError::new("invalid_page", "指定した設定画面は開けません。")),
+    };
+    crate::desktop::open_uri(uri)
+}
+#[tauri::command]
+pub async fn check_updates() -> AppResult<serde_json::Value> {
+    blocking(crate::desktop::check_updates).await
 }

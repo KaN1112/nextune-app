@@ -70,7 +70,6 @@ fn roots() -> Vec<(&'static str, &'static str, Option<PathBuf>)> {
             "クラッシュログ",
             local.map(|p| p.join("CrashDumps")),
         ),
-        ("delivery", "配信の最適化キャッシュ", None),
     ]
 }
 fn has_reparse(path: &Path) -> bool {
@@ -325,6 +324,24 @@ mod tests {
         fs::remove_dir(root).unwrap();
     }
     #[test]
+    fn quick_cleanup_preserves_other_categories() {
+        let (user_root, user) = fixture();
+        let (other_root, mut other) = fixture();
+        other.category = "shader".into();
+        let kept = other.path.clone();
+        let scan = Scan {
+            response: ScanResponse { token: "quick".into(), capped: false,
+                categories: vec![Category {id:"user".into(),name:"temp".into(),count:1,bytes:user.size,status:String::new()}] },
+            files: vec![user,other], created:Instant::now(),
+        };
+        let result = quick_run(scan).unwrap();
+        assert_eq!(result.deleted,1);
+        assert!(kept.exists());
+        fs::remove_file(kept).unwrap();
+        fs::remove_dir(user_root).unwrap();
+        fs::remove_dir(other_root).unwrap();
+    }
+    #[test]
     fn expired_scan_cannot_delete() {
         let (root, file) = fixture();
         let path = file.path.clone();
@@ -342,4 +359,13 @@ mod tests {
         fs::remove_file(path).unwrap();
         fs::remove_dir(root).unwrap();
     }
+}
+
+/// One click: only old user Temp files. Existing per-handle checks apply unchanged.
+pub fn quick_cleanup() -> AppResult<CleanupResult> {
+    quick_run(scan()?)
+}
+
+fn quick_run(scan: Scan) -> AppResult<CleanupResult> {
+    run(scan, &["user".into()])
 }

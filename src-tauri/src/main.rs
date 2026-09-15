@@ -2,6 +2,8 @@
 mod cleaner;
 mod commands;
 mod counters;
+mod desktop;
+mod hardware;
 mod known_folders;
 mod models;
 mod network;
@@ -29,6 +31,7 @@ fn main() {
                 ping: Mutex::new(()),
                 memory_last: Mutex::new(None),
             });
+            desktop::setup(app)?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -38,7 +41,10 @@ fn main() {
             commands::get_process_list,
             commands::list_applications,
             commands::close_application,
-            commands::tidy_memory,
+            commands::quick_cleanup,
+            commands::get_hardware_sensors,
+            commands::open_windows_settings,
+            commands::check_updates,
             commands::run_ping_test,
             commands::scan_cleaner,
             commands::run_cleaner,
