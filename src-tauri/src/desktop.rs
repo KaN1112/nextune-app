@@ -62,9 +62,12 @@ pub fn check_updates() -> AppResult<serde_json::Value> {
     let response = platform::powershell(r#"
 $ErrorActionPreference='Stop'
 try {
+ [Console]::OutputEncoding=[Text.UTF8Encoding]::new()
  [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
  $r=Invoke-RestMethod -Uri 'https://api.github.com/repos/KaN1112/nextune-app/releases/latest' -Headers @{'User-Agent'='NexTune';'Accept'='application/vnd.github+json'} -TimeoutSec 15
- @{status='ok';tag=[string]$r.tag_name} | ConvertTo-Json -Compress
+ $notes=[string]$r.body
+ if($notes.Length -gt 4000){$notes=$notes.Substring(0,4000)}
+ @{status='ok';tag=[string]$r.tag_name;name=[string]$r.name;notes=$notes;publishedAt=[string]$r.published_at;url=[string]$r.html_url} | ConvertTo-Json -Compress
 } catch {
  $code=0; if($_.Exception.Response){$code=[int]$_.Exception.Response.StatusCode}
  @{status='error';code=$code} | ConvertTo-Json -Compress
@@ -75,8 +78,53 @@ try {
         return Err(AppError::new("update_network", "更新情報を取得できませんでした。接続状態やGitHubのアクセス制限を確認してください。"));
     }
     let tag = response["tag"].as_str().unwrap_or("");
-    let latest = version(tag).ok_or_else(|| AppError::new("update_version", "公開タグは v1.1.0 の形式にしてください。"))?;
-    Ok(serde_json::json!({"status":if latest > version(env!("CARGO_PKG_VERSION")).unwrap() {"available"} else {"current"},"latest":tag,"current":env!("CARGO_PKG_VERSION")}))
+    let latest = version(tag).ok_or_else(|| AppError::new("update_version", "公開タグは v1.2.0 の形式にしてください。"))?;
+    Ok(serde_json::json!({
+        "status":if latest > version(env!("CARGO_PKG_VERSION")).unwrap() {"available"} else {"current"},
+        "latest":tag,
+        "current":env!("CARGO_PKG_VERSION"),
+        "name":response["name"],
+        "notes":response["notes"],
+        "publishedAt":response["publishedAt"],
+        "url":response["url"]
+    }))
+}
+pub fn get_announcements() -> AppResult<serde_json::Value> {
+    let response = platform::powershell(r#"
+$ErrorActionPreference='Stop'
+try {
+ [Console]::OutputEncoding=[Text.UTF8Encoding]::new()
+ $uri='https://raw.githubusercontent.com/KaN1112/nextune-app/main/announcements.json?ts='+[DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+ $content=(Invoke-WebRequest -UseBasicParsing -Uri $uri -Headers @{'User-Agent'='NexTune';'Cache-Control'='no-cache'} -TimeoutSec 15).Content
+ @{status='ok';content=[string]$content} | ConvertTo-Json -Compress
+} catch {
+ $code=0; if($_.Exception.Response){$code=[int]$_.Exception.Response.StatusCode}
+ @{status='error';code=$code} | ConvertTo-Json -Compress
+}
+"#, &[])?;
+    if response["status"] != "ok" {
+        if response["code"] == 404 {
+            return Ok(serde_json::json!({"notices":[]}));
+        }
+        return Err(AppError::new("announcement_network", "お知らせを取得できませんでした。接続状態を確認してください。"));
+    }
+    let content = response["content"].as_str().unwrap_or("");
+    let source: serde_json::Value = serde_json::from_str(content)
+        .map_err(|_| AppError::new("announcement_format", "お知らせデータの形式が正しくありません。"))?;
+    let notices = source["notices"].as_array()
+        .ok_or_else(|| AppError::new("announcement_format", "お知らせデータの形式が正しくありません。"))?;
+    let filtered: Vec<_> = notices.iter().take(20).filter_map(|notice| {
+        let title = notice["title"].as_str()?.trim();
+        let body = notice["body"].as_str()?.trim();
+        if title.is_empty() || body.is_empty() || title.len() > 200 || body.len() > 4000 { return None; }
+        Some(serde_json::json!({
+            "title": title,
+            "body": body,
+            "publishedAt": notice["publishedAt"].as_str().unwrap_or(""),
+            "important": notice["important"].as_bool().unwrap_or(false)
+        }))
+    }).collect();
+    Ok(serde_json::json!({"notices": filtered}))
 }
 #[cfg(test)]
 mod tests {

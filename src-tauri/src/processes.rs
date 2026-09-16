@@ -24,6 +24,7 @@ pub fn candidates(exclusions: &[String]) -> AppResult<Vec<ProcessCandidate>> {
             result.push(ProcessCandidate {
                 pid: pid as u32,
                 name: name.into(),
+                title: name.into(),
                 start_ticks: ticks.into(),
                 memory,
             });
@@ -32,10 +33,41 @@ pub fn candidates(exclusions: &[String]) -> AppResult<Vec<ProcessCandidate>> {
     Ok(result)
 }
 pub fn close(p: &ProcessCandidate) -> AppResult<Value> {
-    // Hold a process handle before checking identity; only request normal window close.
-    // No force-kill, no child termination. Unsaved-work prompts remain under app control.
+    // Verify the exact process instance, then send WM_CLOSE to every top-level window
+    // owned by it. This covers apps whose primary window is not MainWindowHandle.
     platform::powershell(
-        r#"$ErrorActionPreference='Stop'; try { $p=[Diagnostics.Process]::GetProcessById([int]$env:NEXTUNE_PID); $handle=$p.Handle; if(([string]$p.StartTime.ToUniversalTime().Ticks -ne $env:NEXTUNE_TICKS) -or ($p.ProcessName+'.exe' -ne $env:NEXTUNE_NAME)){throw 'Identity changed'}; @{requested=$p.CloseMainWindow()} | ConvertTo-Json -Compress } finally {if($p){$p.Dispose()}}"#,
+        r#"$ErrorActionPreference='Stop'
+Add-Type -TypeDefinition @'
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+public static class NexTuneWindows {
+  public delegate bool EnumProc(IntPtr h, IntPtr l);
+  [DllImport("user32.dll")] public static extern bool EnumWindows(EnumProc cb, IntPtr l);
+  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint p);
+  [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint m, IntPtr w, IntPtr l);
+  public static IntPtr[] ForProcess(uint target) {
+    var windows = new List<IntPtr>();
+    EnumWindows((window, unused) => {
+      uint owner;
+      GetWindowThreadProcessId(window, out owner);
+      if (owner == target) windows.Add(window);
+      return true;
+    }, IntPtr.Zero);
+    return windows.ToArray();
+  }
+}
+'@
+$p=$null
+try {
+ $p=[Diagnostics.Process]::GetProcessById([int]$env:NEXTUNE_PID); $handle=$p.Handle
+ if(([string]$p.StartTime.ToUniversalTime().Ticks -ne $env:NEXTUNE_TICKS) -or ($p.ProcessName+'.exe' -ne $env:NEXTUNE_NAME)){throw 'Identity changed'}
+ $sent=0
+ foreach($window in [NexTuneWindows]::ForProcess([uint32]$p.Id)){if([NexTuneWindows]::PostMessage($window,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)){$sent++}}
+ if($sent -eq 0 -and $p.MainWindowHandle -ne 0){if($p.CloseMainWindow()){$sent=1}}
+ $closed=$p.WaitForExit(3000)
+ @{requested=($sent -gt 0);closed=$closed} | ConvertTo-Json -Compress
+} finally {if($p){$p.Dispose()}}"#,
         &[
             ("NEXTUNE_PID", p.pid.to_string()),
             ("NEXTUNE_TICKS", p.start_ticks.clone()),
@@ -44,16 +76,26 @@ pub fn close(p: &ProcessCandidate) -> AppResult<Value> {
     )
 }
 
-/// Visible apps in this Windows session. Exclusions remain effective for manual close.
-pub fn applications(exclusions: &[String]) -> AppResult<Vec<ProcessCandidate>> {
+pub fn force_close(p: &ProcessCandidate) -> AppResult<Value> {
+    platform::powershell(
+        r#"$ErrorActionPreference='Stop'; $p=$null; try { $p=[Diagnostics.Process]::GetProcessById([int]$env:NEXTUNE_PID); $handle=$p.Handle; if(([string]$p.StartTime.ToUniversalTime().Ticks -ne $env:NEXTUNE_TICKS) -or ($p.ProcessName+'.exe' -ne $env:NEXTUNE_NAME)){throw 'Identity changed'}; $p.Kill(); $closed=$p.WaitForExit(5000); @{closed=$closed} | ConvertTo-Json -Compress } finally {if($p){$p.Dispose()}}"#,
+        &[
+            ("NEXTUNE_PID", p.pid.to_string()),
+            ("NEXTUNE_TICKS", p.start_ticks.clone()),
+            ("NEXTUNE_NAME", p.name.clone()),
+        ],
+    )
+}
+
+/// Visible top-level applications in the current Windows session.
+pub fn applications() -> AppResult<Vec<ProcessCandidate>> {
     let values = platform::powershell(
-        r#"$ErrorActionPreference='Stop'; [Console]::OutputEncoding=[Text.UTF8Encoding]::new(); $session=(Get-Process -Id $PID).SessionId; $items=@(Get-Process | Where-Object {$_.SessionId -eq $session -and $_.MainWindowHandle -ne 0 -and $_.ProcessName -notin @('nextune','explorer','ApplicationFrameHost','SystemSettings','Taskmgr','SecurityHealthSystray','MsMpEng','dwm','winlogon','csrss','sihost','ShellExperienceHost','StartMenuExperienceHost')} | ForEach-Object {try {@{pid=$_.Id;name=$_.ProcessName+'.exe';startTicks=[string]$_.StartTime.ToUniversalTime().Ticks;memory=$_.WorkingSet64}}catch{}}); ConvertTo-Json -InputObject $items -Compress"#,
+        r#"$ErrorActionPreference='Stop'; [Console]::OutputEncoding=[Text.UTF8Encoding]::new(); $session=(Get-Process -Id $PID).SessionId; $protected=@('nextune','explorer','Taskmgr','SecurityHealthSystray','MsMpEng','dwm','winlogon','csrss','sihost','ShellExperienceHost','StartMenuExperienceHost'); $items=@(Get-Process | Where-Object {$_.SessionId -eq $session -and $_.MainWindowHandle -ne 0 -and $_.ProcessName -notin $protected} | ForEach-Object {try {@{pid=$_.Id;name=$_.ProcessName+'.exe';title=[string]$_.MainWindowTitle;startTicks=[string]$_.StartTime.ToUniversalTime().Ticks;memory=$_.WorkingSet64}}catch{}}); ConvertTo-Json -InputObject $items -Compress"#,
         &[],
     )?;
     let mut result: Vec<ProcessCandidate> = serde_json::from_value(values).map_err(|_| {
         crate::models::AppError::new("process_list", "アプリ一覧を読み取れませんでした。")
     })?;
-    result.retain(|p| !exclusions.iter().any(|e| e.eq_ignore_ascii_case(&p.name)));
     result.sort_by(|a, b| b.memory.cmp(&a.memory));
     Ok(result)
 }

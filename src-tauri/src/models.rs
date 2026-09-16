@@ -94,6 +94,8 @@ pub struct Change {
 pub struct ProcessCandidate {
     pub pid: u32,
     pub name: String,
+    #[serde(default)]
+    pub title: String,
     pub start_ticks: String,
     pub memory: u64,
 }

@@ -66,6 +66,10 @@
   border-color: var(--accent-solid);
   color: white;
 }
+.button.danger {
+  border-color: #e05265;
+  color: #ff8e9d;
+}
 .button.primary:hover {
   filter: brightness(1.08);
 }

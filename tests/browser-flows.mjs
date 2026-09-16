@@ -38,12 +38,15 @@ await page.addInitScript(() => {
               {
                 pid: 4321,
                 name: "Example.exe",
+                title: "Example Document",
                 startTicks: "987",
                 memory: 10485760,
               },
             ];
           case "close_application":
-            return { requested: true };
+            return { requested: true, closed: false };
+          case "force_close_application":
+            return { closed: true };
           case "get_hardware_sensors":
             return {
               gpu: 42,
@@ -51,7 +54,9 @@ await page.addInitScript(() => {
               measuredAt: new Date().toISOString(),
             };
           case "check_updates":
-            return { status: "available", latest: "v1.2.0", current: "1.1.0" };
+            return { status: "available", latest: "v1.3.0", current: "1.2.0", name: "NexTune 1.3.0", notes: "アプリ管理を改善しました。", publishedAt: "2026-09-16T00:00:00Z", url: "https://example.invalid/release" };
+          case "get_announcements":
+            return { notices: [{ title: "メンテナンスのお知らせ", body: "9月20日にメンテナンスを実施します。", publishedAt: "2026-09-16", important: true }] };
           case "open_windows_settings":
             return null;
           case "load_settings":
@@ -247,7 +252,7 @@ await page.waitForFunction(
   () => saved.autoStart && saved.startMinimized && saved.minimizeToTray,
 );
 await page.locator("#check-updates").click();
-await page.getByText(/新しいバージョン v1.2.0/).waitFor();
+await page.locator("#update-result").getByText(/新しいバージョン v1.3.0/).waitFor();
 await page.locator("#open-release").click();
 await page.waitForFunction(() =>
   calls.some(
@@ -255,6 +260,14 @@ await page.waitForFunction(() =>
   ),
 );
 console.log("PASS startup/tray settings and update check");
+await page.locator('nav a[href="#announcements"]').click();
+await page.getByText("メンテナンスのお知らせ", { exact: true }).waitFor();
+await page.getByText("9月20日にメンテナンスを実施します。", { exact: true }).waitFor();
+await page.getByText("最新版 v1.3.0 をインストールしてください。", { exact: true }).waitFor();
+await page.getByText("アプリ管理を改善しました。", { exact: true }).waitFor();
+await page.locator("#open-latest-release").click();
+await page.waitForFunction(() => calls.some(c => c.command === "open_windows_settings" && c.args.page === "release"));
+console.log("PASS announcements page and release installer guidance");
 await page.locator('nav a[href="#network"]').click();
 await page.locator("#run-ping").click();
 await page.getByText("25%", { exact: true }).waitFor();
@@ -282,7 +295,7 @@ assert.equal(
   1,
 );
 await page.locator('nav a[href="#applications"]').click();
-await page.getByText("Example.exe", { exact: true }).waitFor();
+await page.getByText("Example Document", { exact: true }).waitFor();
 await page.locator("#app-search").fill("missing");
 assert.equal(await page.locator("#apps-list button").count(), 0);
 await page.locator("#app-search").fill("Example");
@@ -302,6 +315,17 @@ await page.waitForFunction(() =>
 assert.deepEqual(
   await page.evaluate(
     () => calls.find((c) => c.command === "close_application").args,
+  ),
+  { selection: { pid: 4321, startTicks: "987" } },
+);
+await page.getByRole("button", { name: "強制終了" }).click();
+await page.locator("#accept-dialog").click();
+await page.waitForFunction(() =>
+  calls.some((c) => c.command === "force_close_application"),
+);
+assert.deepEqual(
+  await page.evaluate(
+    () => calls.find((c) => c.command === "force_close_application").args,
   ),
   { selection: { pid: 4321, startTicks: "987" } },
 );

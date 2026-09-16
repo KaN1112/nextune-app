@@ -7,6 +7,7 @@ import * as cleaner from "./pages/cleaner.js";
 import * as restore from "./pages/restore.js";
 import * as settings from "./pages/settings.js";
 import * as applications from "./pages/applications.js";
+import * as announcements from "./pages/announcements.js";
 const routes = {
   dashboard: ["ダッシュボード", dashboard],
   "game-boost": ["ゲームブースト", boost],
@@ -15,6 +16,7 @@ const routes = {
   network: ["ネットワーク", network],
   cleaner: ["クリーナー", cleaner],
   restore: ["復元", restore],
+  announcements: ["お知らせ", announcements],
   settings: ["設定", settings],
 };
 let active = null,

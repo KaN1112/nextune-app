@@ -236,7 +236,8 @@ async fn blocking<T: Send + 'static>(
 
 #[tauri::command]
 pub async fn list_applications(state: State<'_, AppState>) -> AppResult<Vec<ProcessCandidate>> {
-    processes::applications(&settings::load(&state.root)?.exclusions)
+    let _ = state;
+    processes::applications()
 }
 #[tauri::command]
 pub async fn close_application(
@@ -244,7 +245,7 @@ pub async fn close_application(
     selection: ProcessSelection,
 ) -> AppResult<serde_json::Value> {
     let _guard = state.operations.try_lock().map_err(|_| busy())?;
-    let apps = processes::applications(&settings::load(&state.root)?.exclusions)?;
+    let apps = processes::applications()?;
     let app = apps
         .iter()
         .find(|p| p.pid == selection.pid && p.start_ticks == selection.start_ticks)
@@ -256,6 +257,21 @@ pub async fn close_application(
         })?;
     let result = processes::close(app)?;
     settings::log(&state.root, "application_close_requested");
+    Ok(result)
+}
+#[tauri::command]
+pub async fn force_close_application(
+    state: State<'_, AppState>,
+    selection: ProcessSelection,
+) -> AppResult<serde_json::Value> {
+    let _guard = state.operations.try_lock().map_err(|_| busy())?;
+    let apps = processes::applications()?;
+    let app = apps
+        .iter()
+        .find(|p| p.pid == selection.pid && p.start_ticks == selection.start_ticks)
+        .ok_or_else(|| AppError::new("app_changed", "アプリが終了したか、一覧が変わりました。更新してください。"))?;
+    let result = processes::force_close(app)?;
+    settings::log(&state.root, "application_force_closed");
     Ok(result)
 }
 #[tauri::command]
@@ -288,4 +304,8 @@ pub async fn open_windows_settings(page: String) -> AppResult<()> {
 #[tauri::command]
 pub async fn check_updates() -> AppResult<serde_json::Value> {
     blocking(crate::desktop::check_updates).await
+}
+#[tauri::command]
+pub async fn get_announcements() -> AppResult<serde_json::Value> {
+    blocking(crate::desktop::get_announcements).await
 }

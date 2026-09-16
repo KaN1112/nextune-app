@@ -253,3 +253,35 @@ details .row {
 }
 
 .quick-cleanup { margin-bottom: 20px; }
+.release-notes {
+  margin: 12px 0;
+  padding: 14px;
+  max-height: 280px;
+  overflow: auto;
+  white-space: pre-wrap;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+}
+.announcement-item {
+  padding: 16px;
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.announcement-item:first-child { margin-top: 0; }
+.announcement-item.important { border-left: 3px solid var(--orange); }
+.announcement-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.announcement-heading h3 { margin: 0; }
+.announcement-body {
+  margin-top: 10px;
+  color: var(--muted);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}

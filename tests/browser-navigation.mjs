@@ -22,6 +22,7 @@ for (const [route, title] of [
   ["network", "ネットワーク"],
   ["cleaner", "クリーナー"],
   ["restore", "復元"],
+  ["announcements", "お知らせ"],
   ["settings", "設定"],
 ]) {
   await page.locator(`nav a[href="#${route}"]`).click();
