@@ -2,9 +2,11 @@
   "notices": [
     {
       "title": "NexTune v1.2.0を公開しました",
-      "body": "お知らせページ、アプリ管理、ゲームモード判定を改善しました。最新版のインストーラーをご利用ください。",
+      "body": "最新版をダウンロードできます。",
       "publishedAt": "2026-09-16",
-      "important": true
+      "important": true,
+      "link": "https://kan-official.com/NexTune-downloader/#download",
+      "linkLabel": "最新版をダウンロード"
     }
   ]
 }
