@@ -18,9 +18,8 @@
 - ゲームブースト：対応する既存の高パフォーマンス電源プランを選択・適用・復元。非対応PCはWindowsの電源設定を開けます。
 - ゲームモード：状態確認とWindowsの専用設定画面への移動。
 - 設定：Windowsへのサインイン時の自動起動、最小化起動、トレイへの収納。すべて初期状態ではオフです。トレイメニューから開く／終了できます。
-- 更新確認：手動で `KaN1112/nextune-app` のGitHub Releases最新正式版を確認。`v1.2.0`の形式のタグを使用します。未公開・非公開・接続失敗を「最新」とは扱いません。配布ページからのダウンロード方式で、自動インストールはしません。
 - 運営からのお知らせ：リポジトリ直下の `announcements.json` を取得します。GitHubへログインできる管理者がWeb編集画面から内容を更新でき、アプリの再ビルドは不要です。
-- お知らせ：起動時に最新正式版を確認し、更新がある場合はナビゲーションの通知点とアプリ内通知を表示します。「お知らせ」画面ではバージョン、公開日、リリースノート、既存ユーザー向けのインストール手順、GitHub Releasesへのボタンを表示します。
+- お知らせには任意のHTTPSリンクとボタン名を添付できます。ダウンロード先や詳細ページは投稿ごとに指定します。
 
 ## 自動アップデートについて
 
@@ -34,7 +33,7 @@ Tauriの署名検証付きアップデーターを導入できます。SignPath�
 
 設定・復元履歴・固定イベント名のログは `%APPDATA%/app.nextune.utility` に保存します。自動起動を有効にしたときだけHKCUのRunキーにNexTuneを登録します。exeを移動した場合は自動起動設定をオフ→オンにして登録し直してください。アンインストール前には自動起動をオフにしてください。
 
-通常は管理者権限不要。Windows管理の領域は権限により削除できない場合があります。ゲームやOSの設定を無差別に変更しません。データ送信は手動Pingと手動のGitHub更新確認のみです。センサーツールや配布ページを開く操作は外部ブラウザーを使用します。
+通常は管理者権限不要。Windows管理の領域は権限により削除できない場合があります。ゲームやOSの設定を無差別に変更しません。データ送信は手動Pingとお知らせ取得のみです。お知らせに添付されたリンクは外部ブラウザーを使用します。
 
 ## ビルド
 
@@ -57,7 +56,7 @@ UI確認は `npm run preview` を起動後、別ターミナルで `npm run test
 
 1.2.0の検証範囲は VALIDATION.md を参照してください。旧バージョンのexeに今回の変更は含まれません。
 
-一次資料：[Tauri tray](https://v2.tauri.app/learn/system-tray/)、[Windows Runキー](https://learn.microsoft.com/en-us/windows/win32/setupapi/run-and-runonce-registry-keys)、[Windows GPU監視](https://devblogs.microsoft.com/directx/gpus-in-the-task-manager/)、[GitHub Releases API](https://docs.github.com/en/rest/releases/releases)。依存ライセンスは THIRD_PARTY_NOTICES.md に同梱。
+一次資料：[Tauri tray](https://v2.tauri.app/learn/system-tray/)、[Windows Runキー](https://learn.microsoft.com/en-us/windows/win32/setupapi/run-and-runonce-registry-keys)、[Windows GPU監視](https://devblogs.microsoft.com/directx/gpus-in-the-task-manager/)。依存ライセンスは THIRD_PARTY_NOTICES.md に同梱。
 
 Created by KaN.  
 inspired by VyLite.

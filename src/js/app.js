@@ -40,18 +40,6 @@ async function start() {
     if (state.settings.theme === "system") applyTheme("system");
   });
   if (!isDesktop) return;
-  invoke("check_updates")
-    .then((result) => {
-      if (result.status !== "available") return;
-      const link = document.querySelector('[data-page="announcements"]');
-      if (link && !link.querySelector(".nav-update-dot"))
-        link.insertAdjacentHTML(
-          "beforeend",
-          '<span class="nav-update-dot" aria-label="新しいバージョンあり"></span>',
-        );
-      toast(`新しいバージョン ${result.latest} があります。「お知らせ」から確認できます。`);
-    })
-    .catch(() => {});
   // Only local, read-only queries run at startup. Ping is always started by the user.
   const initial = Promise.allSettled([
     invoke("get_system_info").then((v) => {

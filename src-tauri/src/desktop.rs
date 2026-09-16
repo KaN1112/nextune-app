@@ -53,42 +53,6 @@ pub fn open_uri(uri: &str) -> AppResult<()> {
     platform::powershell(r#"$ErrorActionPreference='Stop'; Start-Process -FilePath $env:NEXTUNE_URI; 'null'"#, &[("NEXTUNE_URI", uri.into())])?;
     Ok(())
 }
-fn version(value: &str) -> Option<(u64,u64,u64)> {
-    let parts: Vec<_> = value.strip_prefix('v').unwrap_or(value).split('.').collect();
-    if parts.len() != 3 { return None; }
-    Some((parts[0].parse().ok()?,parts[1].parse().ok()?,parts[2].parse().ok()?))
-}
-pub fn check_updates() -> AppResult<serde_json::Value> {
-    let response = platform::powershell(r#"
-$ErrorActionPreference='Stop'
-try {
- [Console]::OutputEncoding=[Text.UTF8Encoding]::new()
- [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
- $r=Invoke-RestMethod -Uri 'https://api.github.com/repos/KaN1112/nextune-app/releases/latest' -Headers @{'User-Agent'='NexTune';'Accept'='application/vnd.github+json'} -TimeoutSec 15
- $notes=[string]$r.body
- if($notes.Length -gt 4000){$notes=$notes.Substring(0,4000)}
- @{status='ok';tag=[string]$r.tag_name;name=[string]$r.name;notes=$notes;publishedAt=[string]$r.published_at;url=[string]$r.html_url} | ConvertTo-Json -Compress
-} catch {
- $code=0; if($_.Exception.Response){$code=[int]$_.Exception.Response.StatusCode}
- @{status='error';code=$code} | ConvertTo-Json -Compress
-}
-"#, &[])?;
-    if response["status"] != "ok" {
-        if response["code"] == 404 { return Ok(serde_json::json!({"status":"unpublished"})); }
-        return Err(AppError::new("update_network", "更新情報を取得できませんでした。接続状態やGitHubのアクセス制限を確認してください。"));
-    }
-    let tag = response["tag"].as_str().unwrap_or("");
-    let latest = version(tag).ok_or_else(|| AppError::new("update_version", "公開タグは v1.2.0 の形式にしてください。"))?;
-    Ok(serde_json::json!({
-        "status":if latest > version(env!("CARGO_PKG_VERSION")).unwrap() {"available"} else {"current"},
-        "latest":tag,
-        "current":env!("CARGO_PKG_VERSION"),
-        "name":response["name"],
-        "notes":response["notes"],
-        "publishedAt":response["publishedAt"],
-        "url":response["url"]
-    }))
-}
 pub fn get_announcements() -> AppResult<serde_json::Value> {
     let response = platform::powershell(r#"
 $ErrorActionPreference='Stop'
@@ -117,21 +81,17 @@ try {
         let title = notice["title"].as_str()?.trim();
         let body = notice["body"].as_str()?.trim();
         if title.is_empty() || body.is_empty() || title.len() > 200 || body.len() > 4000 { return None; }
+        let link = notice["link"].as_str().unwrap_or("").trim();
+        let link_label = notice["linkLabel"].as_str().unwrap_or("リンクを開く").trim();
+        let safe_link = if link.starts_with("https://") && link.len() <= 2048 && !link.chars().any(char::is_whitespace) { link } else { "" };
         Some(serde_json::json!({
             "title": title,
             "body": body,
             "publishedAt": notice["publishedAt"].as_str().unwrap_or(""),
-            "important": notice["important"].as_bool().unwrap_or(false)
+            "important": notice["important"].as_bool().unwrap_or(false),
+            "link": safe_link,
+            "linkLabel": if link_label.is_empty() || link_label.len() > 80 { "リンクを開く" } else { link_label }
         }))
     }).collect();
     Ok(serde_json::json!({"notices": filtered}))
-}
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn release_version_order_and_invalid_tags() {
-        assert!(super::version("v1.10.0") > super::version("v1.9.0"));
-        assert!(super::version("v1.2.3-beta").is_none());
-        assert!(super::version("1.2").is_none());
-    }
 }

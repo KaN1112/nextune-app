@@ -296,16 +296,18 @@ pub async fn open_windows_settings(page: String) -> AppResult<()> {
         "game" => "ms-settings:gaming-gamemode",
         "storage" => "ms-settings:storagesense",
         "power" => "ms-settings:powersleep",
-        "release" => "https://github.com/KaN1112/nextune-app/releases",
         _ => return Err(AppError::new("invalid_page", "指定した設定画面は開けません。")),
     };
     crate::desktop::open_uri(uri)
 }
 #[tauri::command]
-pub async fn check_updates() -> AppResult<serde_json::Value> {
-    blocking(crate::desktop::check_updates).await
-}
-#[tauri::command]
 pub async fn get_announcements() -> AppResult<serde_json::Value> {
     blocking(crate::desktop::get_announcements).await
+}
+#[tauri::command]
+pub async fn open_announcement_link(url: String) -> AppResult<()> {
+    if !url.starts_with("https://") || url.len() > 2048 || url.chars().any(char::is_whitespace) {
+        return Err(AppError::new("invalid_url", "安全なHTTPSリンクだけを開けます。"));
+    }
+    crate::desktop::open_uri(&url)
 }

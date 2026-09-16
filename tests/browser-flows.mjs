@@ -53,10 +53,10 @@ await page.addInitScript(() => {
               vram: 1073741824,
               measuredAt: new Date().toISOString(),
             };
-          case "check_updates":
-            return { status: "available", latest: "v1.3.0", current: "1.2.0", name: "NexTune 1.3.0", notes: "アプリ管理を改善しました。", publishedAt: "2026-09-16T00:00:00Z", url: "https://example.invalid/release" };
           case "get_announcements":
-            return { notices: [{ title: "メンテナンスのお知らせ", body: "9月20日にメンテナンスを実施します。", publishedAt: "2026-09-16", important: true }] };
+            return { notices: [{ title: "メンテナンスのお知らせ", body: "9月20日にメンテナンスを実施します。", publishedAt: "2026-09-16", important: true, link: "https://example.invalid/download", linkLabel: "詳細とダウンロード" }] };
+          case "open_announcement_link":
+            return null;
           case "open_windows_settings":
             return null;
           case "load_settings":
@@ -251,23 +251,13 @@ await page.locator("#save-settings").click();
 await page.waitForFunction(
   () => saved.autoStart && saved.startMinimized && saved.minimizeToTray,
 );
-await page.locator("#check-updates").click();
-await page.locator("#update-result").getByText(/新しいバージョン v1.3.0/).waitFor();
-await page.locator("#open-release").click();
-await page.waitForFunction(() =>
-  calls.some(
-    (c) => c.command === "open_windows_settings" && c.args.page === "release",
-  ),
-);
-console.log("PASS startup/tray settings and update check");
+console.log("PASS startup and tray settings");
 await page.locator('nav a[href="#announcements"]').click();
 await page.getByText("メンテナンスのお知らせ", { exact: true }).waitFor();
 await page.getByText("9月20日にメンテナンスを実施します。", { exact: true }).waitFor();
-await page.getByText("最新版 v1.3.0 をインストールしてください。", { exact: true }).waitFor();
-await page.getByText("アプリ管理を改善しました。", { exact: true }).waitFor();
-await page.locator("#open-latest-release").click();
-await page.waitForFunction(() => calls.some(c => c.command === "open_windows_settings" && c.args.page === "release"));
-console.log("PASS announcements page and release installer guidance");
+await page.getByRole("button", { name: "詳細とダウンロード" }).click();
+await page.waitForFunction(() => calls.some(c => c.command === "open_announcement_link" && c.args.url === "https://example.invalid/download"));
+console.log("PASS announcements page and attached link");
 await page.locator('nav a[href="#network"]').click();
 await page.locator("#run-ping").click();
 await page.getByText("25%", { exact: true }).waitFor();
